@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/nixphp/framework.git",
-                "reference": "048c3f3d0832b346c5989626702bdf1267271d69"
+                "reference": "4cccd04f6c42853bfd20d7e79a35610c91858318"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nixphp/framework/zipball/048c3f3d0832b346c5989626702bdf1267271d69",
-                "reference": "048c3f3d0832b346c5989626702bdf1267271d69",
+                "url": "https://api.github.com/repos/nixphp/framework/zipball/4cccd04f6c42853bfd20d7e79a35610c91858318",
+                "reference": "4cccd04f6c42853bfd20d7e79a35610c91858318",
                 "shasum": ""
             },
             "require": {
@@ -62,7 +62,7 @@
                 "issues": "https://github.com/nixphp/framework/issues",
                 "source": "https://github.com/nixphp/framework/tree/main"
             },
-            "time": "2025-05-03T14:28:51+00:00"
+            "time": "2025-05-03T15:57:46+00:00"
         },
         {
             "name": "nyholm/psr7",
