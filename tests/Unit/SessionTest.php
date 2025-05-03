@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use NixPHP\Session\Support\Session;
 use Tests\NixPHPTestCase;
+use function NixPHP\Session\session;
 
 class SessionTest extends NixPHPTestCase
 {
@@ -26,7 +27,11 @@ class SessionTest extends NixPHPTestCase
         $session->flash('foo', 'bar');
         $this->assertSame('bar', $session->getFlash('foo'));
         $this->assertNull($session->getFlash('foo'));
+    }
 
+    public function testSessionHelperFunction()
+    {
+        $this->assertInstanceOf(Session::class, session());
     }
 
 }
