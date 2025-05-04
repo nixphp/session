@@ -1,4 +1,4 @@
-![Logo](https://nixphp.github.io/assets/nixphp-logo-small.png)
+![Logo](https://nixphp.github.io/docs/assets/nixphp-logo-small.png)
 
 [← Back to NixPHP](https://github.com/nixphp/framework)
 
