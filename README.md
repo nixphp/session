@@ -90,21 +90,22 @@ The message is then **automatically removed** after it has been read.
 
 ---
 
-## ✅ Requirements
-
-* `nixphp/framework` >= 1.0
-
----
-
 ## 🛠 Optional Usage in Controllers
 
 You can also access the session directly from the container:
 
 ```php
-$session = app()->container()->get('session');
+$session = app()->container()->get(Session::class);
 ```
 
 But using the `session()` helper is the recommended way.
+
+---
+
+
+## ✅ Requirements
+
+* `nixphp/framework` >= 0.1.0
 
 ---
 
