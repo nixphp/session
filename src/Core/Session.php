@@ -1,6 +1,8 @@
 <?php
 
-namespace NixPHP\Session\Support;
+declare(strict_types=1);
+
+namespace NixPHP\Session\Core;
 
 class Session
 {
