@@ -11,6 +11,18 @@ use function NixPHP\Session\session;
 class SessionTest extends NixPHPTestCase
 {
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $_SESSION = [];
+    }
+
+    protected function tearDown(): void
+    {
+        $_SESSION = [];
+        parent::tearDown();
+    }
+
     public function testSessionInternals()
     {
         $session = new Session();

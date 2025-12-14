@@ -73,7 +73,7 @@ session()->flash('success', 'Profile updated.');
 In the next request, access it using:
 
 ```php
-<?php if ($message = session()->get('success')): ?>
+<?php if ($message = session()->getFlash('success')): ?>
     <p class="success"><?= $message ?></p>
 <?php endif; ?>
 ```
