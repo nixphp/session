@@ -1,4 +1,4 @@
-<div style="text-align: center;">
+<div align="center" style="text-align: center;">
 
 ![Logo](https://nixphp.github.io/docs/assets/nixphp-logo-small-square.png)
 
@@ -12,7 +12,7 @@
 
 # nixphp/session
 
-> **Simple session management for NixPHP — with flash message support built-in.**
+> **Simple session management for NixPHP, with flash message support built-in.**
 
 This plugin adds a lightweight, dependency-free session handler to your NixPHP app.
 It starts the session automatically and provides helpers for storing data across requests — including flash messages.
@@ -24,11 +24,11 @@ It starts the session automatically and provides helpers for storing data across
 
 ## 📦 Features
 
-* ✅ Starts PHP sessions automatically
-* ✅ Store/retrieve session data easily
-* ✅ Flash message system for one-time notices
-* ✅ No configuration needed
-* ✅ PSR-11 container integration (`session()`)
+*  Starts PHP sessions automatically
+*  Store/retrieve session data easily
+*  Flash message system for one-time notices
+*  No configuration needed
+*  PSR-11 container integration (`session()`)
 
 ---
 
