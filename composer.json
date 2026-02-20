@@ -12,7 +12,8 @@
   ],
   "autoload": {
     "psr-4": {
-      "NixPHP\\Session\\": "src/"
+      "NixPHP\\Session\\": "src/",
+      "NixPHP\\Database\\": "src/Database/"
     }
   },
   "autoload-dev": {

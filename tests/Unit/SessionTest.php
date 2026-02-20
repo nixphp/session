@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use NixPHP\Session\Core\Session;
+use NixPHP\Session\Migrations\SessionTableMigration;
+use NixPHP\Session\Storage\DatabaseSessionHandler;
+use PDO;
 use Tests\NixPHPTestCase;
 use function NixPHP\Session\session;
 
@@ -71,6 +74,28 @@ class SessionTest extends NixPHPTestCase
         });
     }
 
+    public function testDefaultCookieParamsForDirectHttpsRequests()
+    {
+        $session = new Session();
+
+        $this->withServerEnvironment([
+            'HTTPS' => 'on',
+            'HTTP_X_FORWARDED_PROTO' => null,
+            'HTTP_HOST' => 'direct.local',
+            'REMOTE_ADDR' => '198.51.100.5',
+        ], function () use ($session) {
+            $session->start();
+
+            $params = session_get_cookie_params();
+            $this->assertSame(0, $params['lifetime']);
+            $this->assertSame('/', $params['path']);
+            $this->assertSame('direct.local', $params['domain']);
+            $this->assertTrue($params['secure']);
+            $this->assertTrue($params['httponly']);
+            $this->assertSame('Lax', $params['samesite']);
+        });
+    }
+
     public function testDefaultCookieParamsForForwardedHttpsRequests()
     {
         $session = new Session();
@@ -79,7 +104,9 @@ class SessionTest extends NixPHPTestCase
             'HTTPS' => 'off',
             'HTTP_X_FORWARDED_PROTO' => 'https',
             'HTTP_HOST' => 'proxy.local',
+            'REMOTE_ADDR' => '203.0.113.5',
         ], function () use ($session) {
+            $session->configureProxyTrust(true, ['203.0.113.5']);
             $session->start();
 
             $params = session_get_cookie_params();
@@ -90,6 +117,39 @@ class SessionTest extends NixPHPTestCase
             $this->assertTrue($params['httponly']);
             $this->assertSame('Lax', $params['samesite']);
         });
+    }
+
+    public function testClearDestroysSessionData()
+    {
+        $session = new Session();
+
+        $this->withServerEnvironment([
+            'HTTPS' => 'on',
+            'HTTP_HOST' => 'clear.local',
+        ], function () use ($session) {
+            $session->start();
+            $session->set('foo', 'bar');
+
+            $session->clear();
+
+            $this->assertSame(PHP_SESSION_NONE, session_status());
+            $this->assertSame([], $_SESSION);
+            $this->assertSame('', $_COOKIE[session_name()] ?? '');
+        });
+    }
+
+    public function testDatabaseSessionHandlerPersistsPayload(): void
+    {
+        $connection = $this->createMemoryConnection();
+        $session = new Session();
+        $session->setSessionHandler(new DatabaseSessionHandler($connection, 'sessions'));
+        $session->start();
+
+        $session->set('foo', 'bar');
+        session_write_close();
+
+        $row = $connection->query('SELECT payload FROM sessions LIMIT 1')->fetchColumn();
+        $this->assertStringContainsString('foo', (string) $row);
     }
 
     public function testGetWithDefaultValue()
@@ -278,6 +338,13 @@ class SessionTest extends NixPHPTestCase
 
         $session->set('zero', 0);
         $this->assertSame(0, $session->get('zero', 999));
+    }
+
+    private function createMemoryConnection(): PDO
+    {
+        $connection = new PDO('sqlite::memory:');
+        (new SessionTableMigration())->up($connection);
+        return $connection;
     }
 
     private function closeActiveSession(): void
