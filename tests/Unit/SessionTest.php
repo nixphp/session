@@ -14,11 +14,13 @@ class SessionTest extends NixPHPTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->closeActiveSession();
         $_SESSION = [];
     }
 
     protected function tearDown(): void
     {
+        $this->closeActiveSession();
         $_SESSION = [];
         parent::tearDown();
     }
@@ -46,6 +48,48 @@ class SessionTest extends NixPHPTestCase
     public function testSessionHelperFunction()
     {
         $this->assertInstanceOf(Session::class, session());
+    }
+
+    public function testDefaultCookieParamsForHttpRequests()
+    {
+        $session = new Session();
+
+        $this->withServerEnvironment([
+            'HTTPS' => 'off',
+            'HTTP_X_FORWARDED_PROTO' => 'http',
+            'HTTP_HOST' => 'http.local',
+        ], function () use ($session) {
+            $session->start();
+
+            $params = session_get_cookie_params();
+            $this->assertSame(0, $params['lifetime']);
+            $this->assertSame('/', $params['path']);
+            $this->assertSame('http.local', $params['domain']);
+            $this->assertFalse($params['secure']);
+            $this->assertTrue($params['httponly']);
+            $this->assertSame('Lax', $params['samesite']);
+        });
+    }
+
+    public function testDefaultCookieParamsForForwardedHttpsRequests()
+    {
+        $session = new Session();
+
+        $this->withServerEnvironment([
+            'HTTPS' => 'off',
+            'HTTP_X_FORWARDED_PROTO' => 'https',
+            'HTTP_HOST' => 'proxy.local',
+        ], function () use ($session) {
+            $session->start();
+
+            $params = session_get_cookie_params();
+            $this->assertSame(0, $params['lifetime']);
+            $this->assertSame('/', $params['path']);
+            $this->assertSame('proxy.local', $params['domain']);
+            $this->assertTrue($params['secure']);
+            $this->assertTrue($params['httponly']);
+            $this->assertSame('Lax', $params['samesite']);
+        });
     }
 
     public function testGetWithDefaultValue()
@@ -234,6 +278,32 @@ class SessionTest extends NixPHPTestCase
 
         $session->set('zero', 0);
         $this->assertSame(0, $session->get('zero', 999));
+    }
+
+    private function closeActiveSession(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+    }
+
+    private function withServerEnvironment(array $overrides, callable $callback): void
+    {
+        $original = $_SERVER;
+
+        foreach ($overrides as $key => $value) {
+            if (null === $value) {
+                unset($_SERVER[$key]);
+            } else {
+                $_SERVER[$key] = $value;
+            }
+        }
+
+        try {
+            $callback();
+        } finally {
+            $_SERVER = $original;
+        }
     }
 
 }

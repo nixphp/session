@@ -11,13 +11,10 @@ class Session
     public function start(?callable $sessionHandler = null): void
     {
         if (null === $sessionHandler) {
-            $sessionHandler = function () {
+            $self = $this;
+            $sessionHandler = function () use ($self) {
                 if (session_status() !== PHP_SESSION_ACTIVE) {
-                    session_set_cookie_params([
-                        'secure'   => true,
-                        'httponly' => true,
-                        'samesite' => 'Lax',
-                    ]);
+                    session_set_cookie_params($self->getDefaultCookieParams());
                     session_start();
                 }
             };
@@ -26,6 +23,26 @@ class Session
         $sessionHandler();
 
         $this->started = true;
+    }
+
+    private function getDefaultCookieParams(): array
+    {
+        $secureCookie = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
+        return [
+            'lifetime' => 0,
+            'path'     => '/',
+            'domain'   => $_SERVER['HTTP_HOST'] ?? '',
+            'secure'   => $secureCookie,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ];
+    }
+
+    public function clear()
+    {
+
     }
 
     public function get(string $key, mixed $default = null): mixed
