@@ -129,6 +129,8 @@ But using the `session()` helper is the recommended way.
 ## ✅ Requirements
 
 * `nixphp/framework` >= 0.1.0
+* `nixphp/database` >= 0.1.1 when enabling database session storage
+* MySQL >= 8.0.19 (required when using the database-backed handler)
 
 ---
 

@@ -8,6 +8,12 @@ use PDO;
 use PDOException;
 use SessionHandlerInterface;
 
+/**
+ * Session handler backed by a sessions table.
+ *
+ * Requires MySQL 8.0.19+ when using the default driver because the upsert
+ * relies on the `AS new` syntax that older versions do not support.
+ */
 class DatabaseSessionHandler implements SessionHandlerInterface
 {
     private PDO $connection;
@@ -17,7 +23,7 @@ class DatabaseSessionHandler implements SessionHandlerInterface
     /** @var callable|null */
     private $contextProvider = null;
 
-    public function __construct(PDO $connection, string $table, array $columns = [], callable $contextProvider = null)
+    public function __construct(PDO $connection, string $table, array $columns = [], ?callable $contextProvider = null)
     {
         $this->connection = $connection;
         $this->driver = strtolower((string) $connection->getAttribute(PDO::ATTR_DRIVER_NAME));
@@ -114,13 +120,14 @@ class DatabaseSessionHandler implements SessionHandlerInterface
     public function gc(int $maxLifetime): int|false
     {
         $threshold = time() - $maxLifetime;
-        $stmt = $this->connection->prepare(sprintf(
-            'DELETE FROM %s WHERE %s < :threshold',
-            $this->quoteIdentifier($this->table),
-            $this->quoteIdentifier($this->columns['last_activity'])
-        ));
 
         try {
+            $stmt = $this->connection->prepare(sprintf(
+                'DELETE FROM %s WHERE %s < :threshold',
+                $this->quoteIdentifier($this->table),
+                $this->quoteIdentifier($this->columns['last_activity'])
+            ));
+
             $stmt->execute(['threshold' => $threshold]);
             return $stmt->rowCount();
         } catch (PDOException $e) {
@@ -140,7 +147,7 @@ class DatabaseSessionHandler implements SessionHandlerInterface
             $this->quoteIdentifier($this->columns['user_id']),
         ];
 
-        if ($this->driver === 'sqlite') {
+        if (in_array($this->driver, ['sqlite', 'pgsql', 'postgres', 'postgresql'], true)) {
             return sprintf(
                 'INSERT INTO %s (%s) VALUES (:id, :payload, :last_activity, :ip, :user_agent, :user_id) ON CONFLICT(%s) DO UPDATE SET %s = excluded.%s, %s = excluded.%s, %s = excluded.%s, %s = excluded.%s, %s = excluded.%s',
                 $this->quoteIdentifier($this->table),
