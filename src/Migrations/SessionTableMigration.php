@@ -7,7 +7,7 @@ namespace NixPHP\Session\Migrations;
 use NixPHP\Database\Core\MigrationInterface;
 use PDO;
 
-if (!interface_exists(MigrationInterface::class)) {
+if (!interface_exists(MigrationInterface::class, false)) {
     return;
 }
 
@@ -23,15 +23,13 @@ class SessionTableMigration implements MigrationInterface
                 `ip_address` VARCHAR(45) NULL,
                 `user_agent` TEXT NULL,
                 `payload` TEXT NOT NULL,
-                `last_activity` INT NOT NULL,
-                CONSTRAINT `fk_sessions_user`
-                    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+                `last_activity` INT NOT NULL
             );
         SQL
         );
 
-        $connection->exec('CREATE INDEX `idx_sessions_user_id` ON `sessions` (`user_id`)');
-        $connection->exec('CREATE INDEX `idx_sessions_last_activity` ON `sessions` (`last_activity`)');
+        $connection->exec('CREATE INDEX IF NOT EXISTS `idx_sessions_user_id` ON `sessions` (`user_id`)');
+        $connection->exec('CREATE INDEX IF NOT EXISTS `idx_sessions_last_activity` ON `sessions` (`last_activity`)');
     }
 
     public function down(PDO $connection): void

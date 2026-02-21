@@ -49,4 +49,6 @@ if (
     $container->get(CommandRegistry::class)->add(SessionMigrationCommand::class);
 }
 
-session()->start();
+if (PHP_SAPI !== 'cli') {
+    session()->start();
+}

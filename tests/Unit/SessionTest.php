@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use NixPHP\Session\Core\Session;
-use NixPHP\Session\Migrations\SessionTableMigration;
 use NixPHP\Session\Storage\DatabaseSessionHandler;
 use PDO;
 use Tests\NixPHPTestCase;
@@ -130,11 +129,11 @@ class SessionTest extends NixPHPTestCase
             $session->start();
             $session->set('foo', 'bar');
 
-            $session->clear();
+        $session->clear();
 
-            $this->assertSame(PHP_SESSION_NONE, session_status());
-            $this->assertSame([], $_SESSION);
-            $this->assertSame('', $_COOKIE[session_name()] ?? '');
+        $this->assertSame(PHP_SESSION_NONE, session_status());
+        $this->assertSame([], $_SESSION);
+        $this->assertFalse(isset($_COOKIE[session_name()]));
         });
     }
 
@@ -148,8 +147,9 @@ class SessionTest extends NixPHPTestCase
         $session->set('foo', 'bar');
         session_write_close();
 
-        $row = $connection->query('SELECT payload FROM sessions LIMIT 1')->fetchColumn();
-        $this->assertStringContainsString('foo', (string) $row);
+        $row = (string) $connection->query('SELECT payload FROM sessions LIMIT 1')->fetchColumn();
+        $this->assertStringContainsString('foo', $row);
+        $this->assertStringContainsString('bar', $row);
     }
 
     public function testGetWithDefaultValue()
@@ -343,7 +343,18 @@ class SessionTest extends NixPHPTestCase
     private function createMemoryConnection(): PDO
     {
         $connection = new PDO('sqlite::memory:');
-        (new SessionTableMigration())->up($connection);
+        $connection->exec(<<<'SQL'
+            CREATE TABLE IF NOT EXISTS `sessions`
+            (
+                `id` VARCHAR(255) PRIMARY KEY,
+                `user_id` INT NULL,
+                `ip_address` VARCHAR(45) NULL,
+                `user_agent` TEXT NULL,
+                `payload` TEXT NOT NULL,
+                `last_activity` INT NOT NULL
+            );
+        SQL
+        );
         return $connection;
     }
 
