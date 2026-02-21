@@ -160,7 +160,7 @@ class DatabaseSessionHandler implements SessionHandlerInterface
         }
 
         return sprintf(
-            'INSERT INTO %s AS new (%s) VALUES (:id, :payload, :last_activity, :ip, :user_agent, :user_id) ON DUPLICATE KEY UPDATE %s = new.%s, %s = new.%s, %s = new.%s, %s = new.%s, %s = new.%s',
+            'INSERT INTO %s (%s) VALUES (:id, :payload, :last_activity, :ip, :user_agent, :user_id) AS new ON DUPLICATE KEY UPDATE %s = new.%s, %s = new.%s, %s = new.%s, %s = new.%s, %s = new.%s',
             $this->quoteIdentifier($this->table),
             implode(', ', $fields),
             $this->quoteIdentifier($this->columns['payload']),
