@@ -28,7 +28,7 @@ This plugin adds a lightweight session layer to your NixPHP app, starts sessions
 * Flash message helpers (`flash`, `getFlash`)
 * `session()` helper bound in the container
 * Optional database-backed storage when `nixphp/database` is installed
-* `session:migrate` CLI command to bootstrap the session table via the CLI plugin
+* Registers the migration path so `vendor/bin/nix migrate up/down` can create the sessions table (requires `nixphp/cli`)
 
 ---
 
@@ -89,7 +89,7 @@ The message is then **automatically removed** after it has been read.
 * Flash data is stored in a dedicated key and removed after access.
 * Registers the `session()` helper and binds it in the service container.
 * Provides `DatabaseSessionHandler` when the database plugin is configured.
-* Includes a `session:migrate` CLI command (registered when `nixphp/cli` is installed) to build or drop the sessions table.
+* Registers the migration path with `nixphp/database` so `vendor/bin/nix migrate up/down` applies the session table changes.
 
 ---
 
@@ -112,6 +112,7 @@ To use the database handler:
 
 1. Install [nixphp/database](https://github.com/nixphp/database) and configure its `database` settings.
 2. Update the `session` config’s `storage` key to `database`.
+3. Run `vendor/bin/nix migrate up` (requires `nixphp/cli`) to apply the migration that creates the sessions table.
 
 ## 🛠 Optional Usage in Controllers
 

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use NixPHP\CLI\Support\CommandRegistry;
 use NixPHP\Database\Core\Database;
-use NixPHP\Session\Commands\SessionMigrationCommand;
+use NixPHP\Database\Support\MigrationRegistry;
 use NixPHP\Session\Core\Session;
 use NixPHP\Session\Storage\DatabaseSessionHandler;
 use function NixPHP\app;
 use function NixPHP\config;
 use function NixPHP\Session\session;
+use function NixPHP\log;
 
 $container = app()->container();
 
@@ -25,12 +25,15 @@ $container->set(Session::class, function () use ($container) {
 
     if (
         $storage === 'database'
-        && class_exists(Database::class)
-        && $container->has(Database::class)
     ) {
-        $database = $container->get(Database::class);
+        if (!app()->hasPlugin('nixphp/database')) {
+            log()->warning('You\'ve configured to use the database as the session storage but the plugin nixphp/database is missing.');
+            return $session;
+        }
+        
+        $database   = $container->get(Database::class);
         $connection = $database->getConnection();
-        $table = config('session:database_table', 'sessions');
+        $table      = config('session:database_table', 'sessions');
 
         $session->setSessionHandler(new DatabaseSessionHandler(
             $connection,
@@ -41,12 +44,8 @@ $container->set(Session::class, function () use ($container) {
     return $session;
 });
 
-if (
-    class_exists(CommandRegistry::class)
-    && $container->has(CommandRegistry::class)
-    && class_exists(SessionMigrationCommand::class)
-) {
-    $container->get(CommandRegistry::class)->add(SessionMigrationCommand::class);
+if (app()->hasPlugin('nixphp/database')) {
+    MigrationRegistry::addPath(__DIR__ . '/src/Migrations');
 }
 
 if (PHP_SAPI !== 'cli') {

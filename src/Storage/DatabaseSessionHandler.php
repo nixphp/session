@@ -26,9 +26,9 @@ class DatabaseSessionHandler implements SessionHandlerInterface
     public function __construct(PDO $connection, string $table, array $columns = [], ?callable $contextProvider = null)
     {
         $this->connection = $connection;
-        $this->driver = strtolower((string) $connection->getAttribute(PDO::ATTR_DRIVER_NAME));
-        $this->table = $table;
-        $this->columns = array_merge([
+        $this->driver     = strtolower((string) $connection->getAttribute(PDO::ATTR_DRIVER_NAME));
+        $this->table      = $table;
+        $this->columns    = array_merge([
             'id'            => 'id',
             'payload'       => 'payload',
             'last_activity' => 'last_activity',
@@ -39,7 +39,7 @@ class DatabaseSessionHandler implements SessionHandlerInterface
         $this->contextProvider = $contextProvider;
     }
 
-    public function open(string $savePath, string $sessionName): bool
+    public function open(string $path, string $name): bool
     {
         return true;
     }
@@ -49,7 +49,7 @@ class DatabaseSessionHandler implements SessionHandlerInterface
         return true;
     }
 
-    public function read(string $sessionId): string
+    public function read(string $id): string
     {
         try {
             $stmt = $this->connection->prepare(sprintf(
@@ -59,7 +59,7 @@ class DatabaseSessionHandler implements SessionHandlerInterface
                 $this->quoteIdentifier($this->columns['id'])
             ));
 
-            $stmt->execute(['id' => $sessionId]);
+            $stmt->execute(['id' => $id]);
             $result = $stmt->fetchColumn();
 
             if (false === $result) {
@@ -68,30 +68,30 @@ class DatabaseSessionHandler implements SessionHandlerInterface
 
             return (string) $result;
         } catch (PDOException $e) {
-            $this->log($e);
+            \NixPHP\log()->error($e->getMessage());
             return '';
         }
     }
 
-    public function write(string $sessionId, string $data): bool
+    public function write(string $id, string $data): bool
     {
-        $now = time();
+        $now     = time();
         $context = $this->resolveContext();
-        $ip = $context['ip'] ?? null;
-        $agent = $context['user_agent'] ?? null;
-        $userId = $context['user_id'] ?? null;
+        $ip      = $context['ip'] ?? null;
+        $agent   = $context['user_agent'] ?? null;
+        $userId  = $context['user_id'] ?? null;
 
         $bindings = [
-            'id' => $sessionId,
-            'payload' => $data,
+            'id'            => $id,
+            'payload'       => $data,
             'last_activity' => $now,
-            'ip' => $ip,
-            'user_agent' => $agent,
-            'user_id' => $userId,
+            'ip'            => $ip,
+            'user_agent'    => $agent,
+            'user_id'       => $userId,
         ];
 
         try {
-            $sql = $this->buildUpsert();
+            $sql  = $this->buildUpsert();
             $stmt = $this->connection->prepare($sql);
 
             return $stmt->execute($bindings);
@@ -101,7 +101,7 @@ class DatabaseSessionHandler implements SessionHandlerInterface
         }
     }
 
-    public function destroy(string $sessionId): bool
+    public function destroy(string $id): bool
     {
         try {
             $stmt = $this->connection->prepare(sprintf(
@@ -110,16 +110,16 @@ class DatabaseSessionHandler implements SessionHandlerInterface
                 $this->quoteIdentifier($this->columns['id'])
             ));
 
-            return $stmt->execute(['id' => $sessionId]);
+            return $stmt->execute(['id' => $id]);
         } catch (PDOException $e) {
             $this->log($e);
             return false;
         }
     }
 
-    public function gc(int $maxLifetime): int|false
+    public function gc(int $max_lifetime): int|false
     {
-        $threshold = time() - $maxLifetime;
+        $threshold = time() - $max_lifetime;
 
         try {
             $stmt = $this->connection->prepare(sprintf(

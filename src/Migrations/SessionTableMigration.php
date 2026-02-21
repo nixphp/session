@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace NixPHP\Session\Migrations;
 
-use NixPHP\Database\Core\MigrationInterface;
+use NixPHP\Database\Core\AbstractMigration;
 use PDO;
+use PDOException;
 
-if (!interface_exists(MigrationInterface::class, false)) {
-    return;
-}
-
-class SessionTableMigration implements MigrationInterface
+class SessionTableMigration extends AbstractMigration
 {
     public function up(PDO $connection): void
     {
@@ -28,12 +25,23 @@ class SessionTableMigration implements MigrationInterface
         SQL
         );
 
-        $connection->exec('CREATE INDEX IF NOT EXISTS `idx_sessions_user_id` ON `sessions` (`user_id`)');
-        $connection->exec('CREATE INDEX IF NOT EXISTS `idx_sessions_last_activity` ON `sessions` (`last_activity`)');
+        $this->createIndex($connection, 'CREATE INDEX `idx_sessions_user_id` ON `sessions` (`user_id`)');
+        $this->createIndex($connection, 'CREATE INDEX `idx_sessions_last_activity` ON `sessions` (`last_activity`)');
     }
 
     public function down(PDO $connection): void
     {
         $connection->exec('DROP TABLE IF EXISTS `sessions`');
+    }
+
+    private function createIndex(PDO $connection, string $sql): void
+    {
+        try {
+            $connection->exec($sql);
+        } catch (PDOException $exception) {
+            if ($exception->getCode() !== '42000' || !str_contains($exception->getMessage(), '1061')) {
+                throw $exception;
+            }
+        }
     }
 }
