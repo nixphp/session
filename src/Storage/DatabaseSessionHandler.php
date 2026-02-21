@@ -142,20 +142,25 @@ class DatabaseSessionHandler implements SessionHandlerInterface
 
         if ($this->driver === 'sqlite') {
             return sprintf(
-                'INSERT INTO %s (%s) VALUES (:id, :payload, :last_activity, :ip, :user_agent, :user_id) ON CONFLICT(%s) DO UPDATE SET %s = :payload, %s = :last_activity, %s = :ip, %s = :user_agent, %s = :user_id',
+                'INSERT INTO %s (%s) VALUES (:id, :payload, :last_activity, :ip, :user_agent, :user_id) ON CONFLICT(%s) DO UPDATE SET %s = excluded.%s, %s = excluded.%s, %s = excluded.%s, %s = excluded.%s, %s = excluded.%s',
                 $this->quoteIdentifier($this->table),
                 implode(', ', $fields),
                 $this->quoteIdentifier($this->columns['id']),
                 $this->quoteIdentifier($this->columns['payload']),
+                $this->quoteIdentifier($this->columns['payload']),
+                $this->quoteIdentifier($this->columns['last_activity']),
                 $this->quoteIdentifier($this->columns['last_activity']),
                 $this->quoteIdentifier($this->columns['ip']),
+                $this->quoteIdentifier($this->columns['ip']),
                 $this->quoteIdentifier($this->columns['user_agent']),
+                $this->quoteIdentifier($this->columns['user_agent']),
+                $this->quoteIdentifier($this->columns['user_id']),
                 $this->quoteIdentifier($this->columns['user_id'])
             );
         }
 
         return sprintf(
-            'INSERT INTO %s (%s) VALUES (:id, :payload, :last_activity, :ip, :user_agent, :user_id) ON DUPLICATE KEY UPDATE %s = VALUES(%s), %s = VALUES(%s), %s = VALUES(%s), %s = VALUES(%s), %s = VALUES(%s)',
+            'INSERT INTO %s AS new (%s) VALUES (:id, :payload, :last_activity, :ip, :user_agent, :user_id) ON DUPLICATE KEY UPDATE %s = new.%s, %s = new.%s, %s = new.%s, %s = new.%s, %s = new.%s',
             $this->quoteIdentifier($this->table),
             implode(', ', $fields),
             $this->quoteIdentifier($this->columns['payload']),
@@ -173,7 +178,13 @@ class DatabaseSessionHandler implements SessionHandlerInterface
 
     private function quoteIdentifier(string $identifier): string
     {
-        return sprintf('`%s`', str_replace('`', '``', $identifier));
+        $driver = $this->driver;
+        return match ($driver) {
+            'pgsql',
+            'postgres',
+            'postgresql' => sprintf('"%s"', str_replace('"', '""', $identifier)),
+            default => sprintf('`%s`', str_replace('`', '``', $identifier)),
+        };
     }
 
     private function resolveContext(): array

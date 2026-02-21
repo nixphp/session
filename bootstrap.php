@@ -21,7 +21,7 @@ $container->set(Session::class, function () use ($container) {
         config('session:trusted_proxies', [])
     );
 
-    $storage = config('sessionStorage', 'default');
+    $storage = config('session:storage', 'default');
 
     if (
         $storage === 'database'
