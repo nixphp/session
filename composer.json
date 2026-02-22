@@ -12,7 +12,8 @@
   ],
   "autoload": {
     "psr-4": {
-      "NixPHP\\Session\\": "src/"
+      "NixPHP\\Session\\": "src/",
+      "NixPHP\\Database\\": "src/Database/"
     }
   },
   "autoload-dev": {
@@ -28,7 +29,13 @@
     "phpunit/phpunit": "^12.1",
     "phpunit/php-code-coverage": "^12.1"
   },
+  "suggest": {
+    "nixphp/database": "Install to use the database-backed session storage handler."
+  },
   "scripts": {
     "test": "phpunit --colors=always"
+  },
+  "extra": {
+    "mysql-version": ">=8.0.19"
   }
 }

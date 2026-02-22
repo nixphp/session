@@ -14,21 +14,21 @@
 
 > **Simple session management for NixPHP, with flash message support built-in.**
 
-This plugin adds a lightweight, dependency-free session handler to your NixPHP app.
-It starts the session automatically and provides helpers for storing data across requests — including flash messages.
+This plugin adds a lightweight session layer to your NixPHP app, starts sessions safely in HTTP requests, and exposes helpers so you can store data (including flash messages) without worrying about headers or manual initialization.
 
 > 🧩 Part of the official NixPHP plugin collection.
-> Install it when you need session persistence — and nothing else.
+> Install it when you need session persistence, and nothing else.
 
 ---
 
 ## 📦 Features
 
-*  Starts PHP sessions automatically
-*  Store/retrieve session data easily
-*  Flash message system for one-time notices
-*  No configuration needed
-*  PSR-11 container integration (`session()`)
+* Starts PHP sessions automatically (skipping CLI)
+* Safeguards cookie params (secure/HttpOnly/SameSite) and regenerates IDs on demand
+* Flash message helpers (`flash`, `getFlash`)
+* `session()` helper bound in the container
+* Optional database-backed storage when `nixphp/database` is installed
+* Registers the migration path so `vendor/bin/nix migrate up/down` can create the sessions table (requires `nixphp/cli`)
 
 ---
 
@@ -38,13 +38,13 @@ It starts the session automatically and provides helpers for storing data across
 composer require nixphp/session
 ```
 
-Once installed, the plugin is autoloaded and ready to use.
+Once installed, the plugin is autoloaded and ready to use. If you install `nixphp/database` too, it can store sessions in your database table instead of native PHP files.
 
 ---
 
-## 🚀 Usage
+## Usage
 
-### 📌 Accessing the session
+### Accessing the session
 
 Use the global `session()` helper to access the session storage:
 
@@ -62,7 +62,7 @@ session()->forget('user_id');
 
 ---
 
-### ✨ Flash messages
+### Flash messages
 
 Use flash messages to store data for the *next* request only (e.g. after a redirect):
 
@@ -84,11 +84,35 @@ The message is then **automatically removed** after it has been read.
 
 ## 🔍 Internals
 
-* Automatically starts `session_start()` if it hasn't run yet.
+* Automatically starts `session_start()` for web requests, with hardened cookie parameters and domain normalization.
+* Offers `Session::regenerate()` so you can refresh the session ID during login flows without touching every request.
 * Flash data is stored in a dedicated key and removed after access.
 * Registers the `session()` helper and binds it in the service container.
+* Provides `DatabaseSessionHandler` when the database plugin is configured.
+* Registers the migration path with `nixphp/database` so `vendor/bin/nix migrate up/down` applies the session table changes.
 
 ---
+
+## Configuration
+
+`src/config.php` exposes the following keys:
+
+```php
+return [
+    'session' => [
+        'storage'             => 'default', // switch to 'database' when using nixphp/database
+        'trust_proxy_headers' => false,
+        'trusted_proxies'     => [],
+        'database_table'      => 'sessions',
+    ],
+];
+```
+
+To use the database handler:
+
+1. Install [nixphp/database](https://github.com/nixphp/database) and configure its `database` settings.
+2. Update the `session` config’s `storage` key to `database`.
+3. Run `vendor/bin/nix migrate up` (requires `nixphp/cli`) to apply the migration that creates the sessions table.
 
 ## 🛠 Optional Usage in Controllers
 
@@ -106,6 +130,8 @@ But using the `session()` helper is the recommended way.
 ## ✅ Requirements
 
 * `nixphp/framework` >= 0.1.0
+* `nixphp/database` >= 0.1.1 when enabling database session storage
+* MySQL >= 8.0.19 (required when using the database-backed handler)
 
 ---
 
