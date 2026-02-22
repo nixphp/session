@@ -7,6 +7,7 @@ namespace NixPHP\Session\Storage;
 use PDO;
 use PDOException;
 use SessionHandlerInterface;
+use function NixPHP\log;
 
 /**
  * Session handler backed by a sessions table.
@@ -217,6 +218,6 @@ class DatabaseSessionHandler implements SessionHandlerInterface
 
     private function log(PDOException $exception): void
     {
-        error_log('Session database error: ' . $exception->getMessage());
+        log()->error('Session database error: ' . $exception->getMessage(), ['exception' => $exception]);
     }
 }
