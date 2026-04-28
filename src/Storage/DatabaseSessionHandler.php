@@ -68,8 +68,9 @@ class DatabaseSessionHandler implements SessionHandlerInterface
                 return '';
             }
 
-            if ($this->isExpired((int)($result[$this->columns['last_activity']] ?? 0))) {
-                $this->destroy($id);
+            $lastActivity = (int)($result[$this->columns['last_activity']] ?? 0);
+            if ($this->isExpired($lastActivity)) {
+                $this->destroyIfLastActivityMatches($id, $lastActivity);
                 return '';
             }
 
@@ -118,6 +119,26 @@ class DatabaseSessionHandler implements SessionHandlerInterface
             ));
 
             return $stmt->execute(['id' => $id]);
+        } catch (PDOException $e) {
+            $this->log($e);
+            return false;
+        }
+    }
+
+    private function destroyIfLastActivityMatches(string $id, int $lastActivity): bool
+    {
+        try {
+            $stmt = $this->connection->prepare(sprintf(
+                'DELETE FROM %s WHERE %s = :id AND %s = :last_activity',
+                $this->quoteIdentifier($this->table),
+                $this->quoteIdentifier($this->columns['id']),
+                $this->quoteIdentifier($this->columns['last_activity'])
+            ));
+
+            return $stmt->execute([
+                'id' => $id,
+                'last_activity' => $lastActivity,
+            ]);
         } catch (PDOException $e) {
             $this->log($e);
             return false;

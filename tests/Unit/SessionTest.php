@@ -171,6 +171,33 @@ class SessionTest extends NixPHPTestCase
         $this->assertSame(0, (int)$connection->query('SELECT COUNT(*) FROM sessions')->fetchColumn());
     }
 
+    public function testDatabaseSessionHandlerDoesNotDestroyRenewedExpiredSession(): void
+    {
+        $connection = $this->createMemoryConnection();
+        $handler = new DatabaseSessionHandler($connection, 'sessions');
+        $expiredAt = time() - ((int)ini_get('session.gc_maxlifetime') + 10);
+        $renewedAt = time();
+
+        $statement = $connection->prepare(
+            'INSERT INTO sessions (id, payload, last_activity) VALUES (:id, :payload, :last_activity)'
+        );
+        $statement->execute([
+            'id' => 'renewed-session',
+            'payload' => 'foo|s:3:"bar";',
+            'last_activity' => $renewedAt,
+        ]);
+
+        $method = new \ReflectionMethod($handler, 'destroyIfLastActivityMatches');
+        $this->assertTrue($method->invoke($handler, 'renewed-session', $expiredAt));
+
+        $row = $connection->query('SELECT payload, last_activity FROM sessions WHERE id = "renewed-session"')
+            ->fetch(PDO::FETCH_ASSOC);
+
+        $this->assertIsArray($row);
+        $this->assertSame('foo|s:3:"bar";', $row['payload']);
+        $this->assertSame($renewedAt, (int)$row['last_activity']);
+    }
+
     public function testDatabaseSessionHandlerStoresCamelCaseUserIdContext(): void
     {
         $connection = $this->createMemoryConnection();
