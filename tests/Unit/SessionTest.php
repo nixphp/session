@@ -152,6 +152,36 @@ class SessionTest extends NixPHPTestCase
         $this->assertStringContainsString('bar', $row);
     }
 
+    public function testDatabaseSessionHandlerRejectsExpiredSessionOnRead(): void
+    {
+        $connection = $this->createMemoryConnection();
+        $handler = new DatabaseSessionHandler($connection, 'sessions');
+        $expiredAt = time() - ((int)ini_get('session.gc_maxlifetime') + 10);
+
+        $statement = $connection->prepare(
+            'INSERT INTO sessions (id, payload, last_activity) VALUES (:id, :payload, :last_activity)'
+        );
+        $statement->execute([
+            'id' => 'expired-session',
+            'payload' => 'foo|s:3:"bar";',
+            'last_activity' => $expiredAt,
+        ]);
+
+        $this->assertSame('', $handler->read('expired-session'));
+        $this->assertSame(0, (int)$connection->query('SELECT COUNT(*) FROM sessions')->fetchColumn());
+    }
+
+    public function testDatabaseSessionHandlerStoresCamelCaseUserIdContext(): void
+    {
+        $connection = $this->createMemoryConnection();
+        $handler = new DatabaseSessionHandler($connection, 'sessions');
+
+        $_SESSION['userId'] = 42;
+
+        $this->assertTrue($handler->write('user-session', 'userId|i:42;'));
+        $this->assertSame(42, (int)$connection->query('SELECT user_id FROM sessions LIMIT 1')->fetchColumn());
+    }
+
     public function testGetWithDefaultValue()
     {
         $session = new Session();

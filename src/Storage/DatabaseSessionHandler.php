@@ -54,20 +54,26 @@ class DatabaseSessionHandler implements SessionHandlerInterface
     {
         try {
             $stmt = $this->connection->prepare(sprintf(
-                'SELECT %s FROM %s WHERE %s = :id',
+                'SELECT %s, %s FROM %s WHERE %s = :id',
                 $this->quoteIdentifier($this->columns['payload']),
+                $this->quoteIdentifier($this->columns['last_activity']),
                 $this->quoteIdentifier($this->table),
                 $this->quoteIdentifier($this->columns['id'])
             ));
 
             $stmt->execute(['id' => $id]);
-            $result = $stmt->fetchColumn();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (false === $result) {
                 return '';
             }
 
-            return (string) $result;
+            if ($this->isExpired((int)($result[$this->columns['last_activity']] ?? 0))) {
+                $this->destroy($id);
+                return '';
+            }
+
+            return (string)($result[$this->columns['payload']] ?? '');
         } catch (PDOException $e) {
             \NixPHP\log()->error($e->getMessage());
             return '';
@@ -200,7 +206,7 @@ class DatabaseSessionHandler implements SessionHandlerInterface
         $fallback = [
             'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
             'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
-            'user_id' => $_SESSION['user_id'] ?? null,
+            'user_id' => $_SESSION['user_id'] ?? $_SESSION['userId'] ?? null,
         ];
 
         if (null === $this->contextProvider) {
@@ -214,6 +220,20 @@ class DatabaseSessionHandler implements SessionHandlerInterface
             'user_agent' => $context['user_agent'] ?? $fallback['user_agent'],
             'user_id' => $context['user_id'] ?? $fallback['user_id'],
         ];
+    }
+
+    private function isExpired(int $lastActivity): bool
+    {
+        if ($lastActivity <= 0) {
+            return true;
+        }
+
+        $maxLifetime = (int)ini_get('session.gc_maxlifetime');
+        if ($maxLifetime <= 0) {
+            $maxLifetime = 1440;
+        }
+
+        return $lastActivity < (time() - $maxLifetime);
     }
 
     private function log(PDOException $exception): void
