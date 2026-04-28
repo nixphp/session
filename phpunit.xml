@@ -4,6 +4,7 @@
         failOnRisky="true"
         failOnWarning="true"
         beStrictAboutTestsThatDoNotTestAnything="true"
+        cacheResult="false"
         displayDetailsOnPhpunitDeprecations="true">
 
     <testsuites>
