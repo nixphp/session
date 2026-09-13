@@ -1,5 +1,6 @@
 {
   "name": "nixphp/session",
+  "abandoned": "naf/session",
   "description": "NixPHP Session Plugin for storing data across requests.",
   "minimum-stability": "stable",
   "license": "MIT",
